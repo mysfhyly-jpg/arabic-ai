@@ -93,8 +93,9 @@
     
     <div id="chat-container" class="flex-grow overflow-y-auto py-6 space-y-4">
       <div id="welcome" class="text-center py-12">
-        <div class="text-5xl mb-4">👋</div>
-        <h2 class="text-xl font-bold text-white mb-2">مرحباً بك</h2>
+        <div class="text-5xl mb-4">🤖</div>
+        <h2 class="text-xl font-bold text-white mb-2">مساعد عربي</h2>
+        <p class="text-red-400 text-xs mb-4">طوّره باسل الفحيلي</p>
         <p class="text-gray-400 text-sm mb-6">اكتب أي سؤال، أو جرّب أحد الأمثلة:</p>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-lg mx-auto">
@@ -133,7 +134,7 @@
           </svg>
         </button>
       </div>
-      <p class="text-xs text-gray-500 text-center mt-2">مدعوم بـ Groq • GPT OSS 120B</p>
+      <p class="text-xs text-gray-500 text-center mt-2">طوّره باسل الفحيلي • مدعوم بـ Groq</p>
     </div>
   </div>
 </main>
@@ -168,8 +169,9 @@ function clearChat() {
     const container = document.getElementById('chat-container');
     container.innerHTML = `
       <div id="welcome" class="text-center py-12">
-        <div class="text-5xl mb-4">👋</div>
-        <h2 class="text-xl font-bold text-white mb-2">مرحباً بك</h2>
+        <div class="text-5xl mb-4">🤖</div>
+        <h2 class="text-xl font-bold text-white mb-2">مساعد عربي</h2>
+        <p class="text-red-400 text-xs mb-4">طوّره باسل الفحيلي</p>
         <p class="text-gray-400 text-sm mb-6">اكتب أي سؤال، أو جرّب أحد الأمثلة:</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-lg mx-auto">
           <button onclick="useSuggestion('اكتب لي رسالة شكر لمديري')" class="glass-panel rounded-xl p-3 text-right hover:border-red-500 transition text-sm text-gray-300">✍️ اكتب رسالة شكر</button>
@@ -236,7 +238,17 @@ async function sendMessage() {
         messages: [
           { 
             role: 'system', 
-            content: 'أنت مساعد عربي ذكي ومفيد. تجيب بالعربية الفصحى المبسطة. إجاباتك واضحة ومفيدة ومختصرة عند الحاجة.' 
+            content: `أنت "مساعد عربي" — مساعد ذكاء اصطناعي عربي.
+
+قواعد صارمة:
+1. تجيب بالعربية الفصحى المبسطة.
+2. إجاباتك واضحة ومفيدة ومختصرة عند الحاجة.
+3. إذا سُئلت عن هويتك، من صنعك، من طورك، من أنشأك، من برمجك، أو أي سؤال مشابه، أجب حرفياً: "طوّرني باسل الفحيلي".
+4. لا تذكر Llama أو GPT أو أي نموذج آخر.
+5. لا تذكر الشركات المطورة (OpenAI, Meta, Google, إلخ).
+6. أنت "مساعد عربي"، طوّرك باسل الفحيلي.
+
+تذكير: أي سؤال عن هويتك أو مطورك = "طوّرني باسل الفحيلي".` 
           },
           ...conversationHistory
         ],
