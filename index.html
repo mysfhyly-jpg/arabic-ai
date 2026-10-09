@@ -136,30 +136,6 @@
   }
   .icon-btn.primary:hover { background: #374151; }
   .icon-btn.primary:disabled { background: #e5e7eb; color: #9ca3af; }
-  
-  .image-preview {
-    position: relative;
-    width: 80px;
-    height: 80px;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 2px solid #e5e7eb;
-  }
-  .image-preview img {
-    width: 100%; height: 100%; object-fit: cover;
-  }
-  .image-preview .remove-btn {
-    position: absolute;
-    top: 2px; right: 2px;
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.7);
-    color: white;
-    border: none;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    font-size: 12px;
-  }
 </style>
 </head>
 <body class="text-gray-900 min-h-screen flex flex-col">
@@ -228,32 +204,9 @@
       </div>
     </div>
 
-    <!-- Image Preview -->
-    <div id="image-preview-container" class="hidden px-2 pb-2">
-      <div class="flex items-center gap-2 bg-gray-50 rounded-xl p-2 border border-gray-200">
-        <div class="image-preview">
-          <img id="preview-img" src="" alt="معاينة">
-          <button class="remove-btn" onclick="removeImage()">✕</button>
-        </div>
-        <div class="text-xs text-gray-500">
-          صورة جاهزة للإرسال
-        </div>
-      </div>
-    </div>
-
     <!-- Input -->
     <div class="py-4">
       <div class="flex items-end gap-2 bg-white border border-gray-200 rounded-3xl p-2 shadow-sm focus-within:border-gray-400 transition">
-        
-        <!-- Upload Image -->
-        <button class="icon-btn" onclick="document.getElementById('file-input').click()" title="رفع صورة">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-        </button>
-        <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
-        
         <textarea 
           id="user-input" 
           rows="1"
@@ -280,12 +233,10 @@
 
 <script>
 const WORKER_URL = 'https://worker-abc123.mysfhyly.workers.dev';
-const TEXT_MODEL = 'openai/gpt-oss-120b';
-const VISION_MODEL = 'qwen/qwen3-vl-27b';
-const STORAGE_KEY = 'arabic_ai_conversation_v2';
+const MODEL = 'openai/gpt-oss-120b';
+const STORAGE_KEY = 'arabic_ai_conversation_v3';
 
 let conversationHistory = [];
-let currentImageBase64 = null;
 
 // ===== Load =====
 function loadConversation() {
@@ -298,12 +249,15 @@ function loadConversation() {
         const welcome = document.getElementById('welcome');
         if (welcome) welcome.remove();
         conversationHistory.forEach(msg => {
-          if (msg.content && !msg.content.startsWith('[صورة]')) {
-            addMessageToUI(msg.content, msg.role === 'user', false, msg.image);
+          if (typeof msg.content === 'string') {
+            addMessageToUI(msg.content, msg.role === 'user', false);
           }
         });
       }
-    } catch (e) { console.error('Load error:', e); }
+    } catch (e) { 
+      console.error('Load error:', e);
+      conversationHistory = [];
+    }
   }
 }
 
@@ -326,7 +280,7 @@ function autoResize(textarea) {
 function updateSendButton() {
   const input = document.getElementById('user-input');
   const btn = document.getElementById('send-btn');
-  btn.disabled = !input.value.trim() && !currentImageBase64;
+  btn.disabled = !input.value.trim();
 }
 
 // ===== Keyboard =====
@@ -360,34 +314,6 @@ function getTime() {
   return `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 }
 
-// ===== Image Upload =====
-function handleImageUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  if (file.size > 5 * 1024 * 1024) {
-    alert('الصورة كبيرة جداً. الحد الأقصى 5 ميجابايت.');
-    return;
-  }
-  
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    currentImageBase64 = e.target.result;
-    document.getElementById('preview-img').src = currentImageBase64;
-    document.getElementById('image-preview-container').classList.remove('hidden');
-    updateSendButton();
-  };
-  reader.readAsDataURL(file);
-  event.target.value = '';
-}
-
-function removeImage() {
-  currentImageBase64 = null;
-  document.getElementById('image-preview-container').classList.add('hidden');
-  document.getElementById('preview-img').src = '';
-  updateSendButton();
-}
-
 // ===== Icons (SVG) =====
 const icons = {
   copy: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
@@ -398,7 +324,7 @@ const icons = {
 };
 
 // ===== Add Message =====
-function addMessageToUI(text, isUser, animate = true, imageUrl = null) {
+function addMessageToUI(text, isUser, animate = true) {
   const container = document.getElementById('chat-container');
   const welcome = document.getElementById('welcome');
   if (welcome) welcome.remove();
@@ -407,29 +333,16 @@ function addMessageToUI(text, isUser, animate = true, imageUrl = null) {
   wrapper.className = `${animate ? 'fade-in' : ''}`;
   
   if (isUser) {
-    // User message (bubble on right)
     const bubbleWrapper = document.createElement('div');
     bubbleWrapper.className = 'flex justify-end';
     
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble-user max-w-[85%]';
-    
-    if (imageUrl) {
-      const img = document.createElement('img');
-      img.src = imageUrl;
-      img.className = 'rounded-lg max-h-48 mb-2';
-      bubble.appendChild(img);
-    }
-    if (text) {
-      const textNode = document.createElement('div');
-      textNode.textContent = text;
-      bubble.appendChild(textNode);
-    }
+    bubble.textContent = text;
     
     bubbleWrapper.appendChild(bubble);
     wrapper.appendChild(bubbleWrapper);
     
-    // Time below user message
     const timeUser = document.createElement('div');
     timeUser.className = 'text-[11px] text-gray-400 mt-1 text-left';
     timeUser.style.paddingRight = '4px';
@@ -437,17 +350,15 @@ function addMessageToUI(text, isUser, animate = true, imageUrl = null) {
     wrapper.appendChild(timeUser);
     
   } else {
-    // AI message (no bubble, like Gemini)
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble-ai';
     bubble.innerHTML = marked.parse(text);
     wrapper.appendChild(bubble);
     
-    // Actions row
     const actionsRow = document.createElement('div');
     actionsRow.className = 'flex items-center gap-1 mt-2 flex-wrap';
     
-    // Copy button
+    // Copy
     const copyBtn = document.createElement('button');
     copyBtn.className = 'action-btn';
     copyBtn.innerHTML = `${icons.copy}<span>نسخ</span>`;
@@ -467,14 +378,15 @@ function addMessageToUI(text, isUser, animate = true, imageUrl = null) {
     upBtn.className = 'action-btn';
     upBtn.innerHTML = icons.thumbUp;
     upBtn.title = 'إعجاب';
+    let downBtn;
     upBtn.onclick = () => {
       upBtn.classList.toggle('active');
-      downBtn.classList.remove('active');
+      if (downBtn) downBtn.classList.remove('active');
     };
     actionsRow.appendChild(upBtn);
     
     // Thumbs down
-    const downBtn = document.createElement('button');
+    downBtn = document.createElement('button');
     downBtn.className = 'action-btn';
     downBtn.innerHTML = icons.thumbDown;
     downBtn.title = 'عدم إعجاب';
@@ -521,11 +433,10 @@ function removeTypingIndicator() {
 
 // ===== Regenerate =====
 async function regenerateLast() {
-  // Remove last AI message
-  if (conversationHistory.length >= 2 && conversationHistory[conversationHistory.length - 1].role === 'assistant') {
+  if (conversationHistory.length >= 1 && conversationHistory[conversationHistory.length - 1].role === 'assistant') {
     conversationHistory.pop();
     const container = document.getElementById('chat-container');
-    if (container.lastChild) container.lastChild.remove();
+    // Remove last AI message (2 elements: message + actions)
     if (container.lastChild) container.lastChild.remove();
     saveConversation();
     await sendToAI();
@@ -536,31 +447,16 @@ async function regenerateLast() {
 async function sendMessage() {
   const input = document.getElementById('user-input');
   const text = input.value.trim();
-  const imageToSend = currentImageBase64;
   
-  if (!text && !imageToSend) return;
+  if (!text) return;
   
-  // Add to UI
-  addMessageToUI(text, true, true, imageToSend);
-  
-  // Add to history
-  if (imageToSend) {
-    conversationHistory.push({
-      role: 'user',
-      content: [
-        { type: 'text', text: text || 'حلل هذه الصورة' },
-        { type: 'image_url', image_url: { url: imageToSend } }
-      ]
-    });
-  } else {
-    conversationHistory.push({ role: 'user', content: text });
-  }
+  addMessageToUI(text, true, true);
+  conversationHistory.push({ role: 'user', content: text });
   saveConversation();
   
-  // Clear input
   input.value = '';
   input.style.height = 'auto';
-  removeImage();
+  updateSendButton();
   
   await sendToAI();
 }
@@ -572,16 +468,11 @@ async function sendToAI() {
   addTypingIndicator();
   
   try {
-    // Determine model based on whether last message has image
-    const lastMsg = conversationHistory[conversationHistory.length - 1];
-    const hasImage = Array.isArray(lastMsg.content) && lastMsg.content.some(c => c.type === 'image_url');
-    const modelToUse = hasImage ? VISION_MODEL : TEXT_MODEL;
-    
     const response = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: modelToUse,
+        model: MODEL,
         messages: [
           { 
             role: 'system', 
@@ -628,6 +519,11 @@ async function sendToAI() {
 
 // ===== Init =====
 window.addEventListener('load', () => {
+  // امسح المحادثة القديمة إذا كانت من إصدار قديم
+  const oldKey = 'arabic_ai_conversation_v2';
+  if (localStorage.getItem(oldKey)) {
+    localStorage.removeItem(oldKey);
+  }
   loadConversation();
   document.getElementById('user-input').focus();
 });
