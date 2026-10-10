@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مساعد عربي</title>
+<meta name="description" content="مساعد ذكاء اصطناعي عربي.">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { font-family: 'Cairo', sans-serif; }
+  body { background: #ffffff; }
+  
+  .msg-bubble-user {
+    background: #f0f4f9;
+    color: #111827;
+    border-radius: 20px;
+    padding: 12px 18px;
+    max-width: 100%;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    line-height: 1.7;
+    font-size: 15px;
+    display: inline-block;
+  }
+  
+  .msg-bubble-ai {
+    color: #111827;
+    line-height: 1.9;
+    font-size: 15px;
+  }
+  
+  .msg-bubble-ai p { margin: 0 0 12px 0; }
+  .msg-bubble-ai p:last-child { margin-bottom: 0; }
+  .msg-bubble-ai strong { color: #111827; font-weight: 700; }
+  .msg-bubble-ai em { font-style: italic; }
+  .msg-bubble-ai ul, .msg-bubble-ai ol { padding-right: 22px; margin: 10px 0; }
+  .msg-bubble-ai li { margin-bottom: 6px; }
+  .msg-bubble-ai h1, .msg-bubble-ai h2, .msg-bubble-ai h3 { 
+    color: #111827; font-weight: 700; margin: 16px 0 8px; 
+  }
+  .msg-bubble-ai h1 { font-size: 20px; }
+  .msg-bubble-ai h2 { font-size: 18px; }
+  .msg-bubble-ai h3 { font-size: 16px; }
+  
+  /* ===== Code Block (inline) ===== */
+  .msg-bubble-ai code:not(pre code) {
+    background: #f3f4f6;
+    color: #dc2626;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    direction: ltr;
+    display: inline-block;
+  }
+  
+  /* ===== Code Block (block) ===== */
+  .code-block-wrapper {
+    position: relative;
+    margin: 12px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+  }
+  
+  .code-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 12px;
+    color: #6b7280;
+  }
+  
+  .code-block-lang {
+    font-weight: 600;
+    text-transform: lowercase;
+  }
+  
+  .code-copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #6b7280;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  
+  .code-copy-btn:hover {
+    background: #e5e7eb;
+    color: #111827;
+  }
+  
+  .code-copy-btn.copied {
+    color: #16a34a;
+  }
+  
+  .code-block-wrapper pre {
+    margin: 0;
+    padding: 14px;
+    overflow-x: auto;
+    direction: ltr;
+    text-align: left;
+    background: transparent;
+  }
+  
+  .code-block-wrapper pre code {
+    background: transparent;
+    color: #111827;
+    padding: 0;
+    font-size: 13px;
+    font-family: 'Courier New', monospace;
+    line-height: 1.6;
+  }
+  
+  .msg-bubble-ai a { color: #2563eb; text-decoration: underline; }
+  
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in { animation: fadeInUp 0.3s ease-out; }
+  
+  .typing-indicator {
+    display: flex; gap: 4px; align-items: center; padding: 4px 0;
+  }
+  .typing-indicator span {
+    width: 7px; height: 7px; border-radius: 50%; background: #9ca3af;
+    animation: bounce 1.4s infinite ease-in-out;
+  }
+  .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+  .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+  
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+  
+  textarea { resize: none; max-height: 160px; }
+  
+  .action-btn {
+    display: flex; align-items: center; gap: 4px;
+    padding: 5px 8px; border-radius: 8px;
+    font-size: 12px; color: #6b7280;
+    transition: all 0.15s; cursor: pointer;
+    background: transparent; border: none;
+  }
+  .action-btn:hover { background: #f3f4f6; color: #111827; }
+  .action-btn.active { color: #dc2626; }
+  
+  .suggestion-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 14px 16px;
+    transition: all 0.2s;
+    text-align: right;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+  }
+  .suggestion-card:hover {
+    border-color: #9ca3af;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  }
+  
+  .icon-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 50%;
+    transition: all 0.15s; cursor: pointer;
+    background: transparent; border: none; color: #6b7280;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { background: #f3f4f6; }
+  .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .icon-btn.primary {
+    background: #111827; color: white;
+  }
+  .icon-btn.primary:hover { background: #374151; }
+  .icon-btn.primary:disabled { background: #e5e7eb; color: #9ca3af; }
+</style>
+</head>
+<body class="text-gray-900 min-h-screen flex flex-col">
+
+<!-- Header -->
+<header class="border-b border-gray-100 bg-white sticky top-0 z-50">
+  <div class="max-w-3xl mx-auto px-4 py-3 flex justify-between items-center">
+    <div class="flex items-center gap-2.5">
+      <span class="text-2xl">🌍</span>
+      <div>
+        <h1 class="text-base font-bold text-gray-900 leading-tight">مساعد عربي</h1>
+        <p class="text-[11px] text-gray-500">ذكاء اصطناعي بالعربية</p>
+      </div>
+    </div>
+    <button onclick="clearChat()" class="text-xs bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      جديد
+    </button>
+  </div>
+</header>
+
+<!-- Main -->
+<main class="flex-grow overflow-hidden">
+  <div class="max-w-3xl mx-auto h-full flex flex-col px-3 sm:px-4">
+    
+    <div id="chat-container" class="flex-grow overflow-y-auto py-6 space-y-6">
+      
+      <div id="welcome" class="text-center py-16 px-4">
+        <div class="text-5xl mb-5">🌍</div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">مرحباً بك</h2>
+        <p class="text-gray-500 text-sm mb-10">كيف يمكنني مساعدتك اليوم؟</p>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
+          <div onclick="useSuggestion('اكتب لي رسالة شكر لمديري')" class="suggestion-card">
+            <span class="text-lg">✍️</span>
+            <div>
+              <div class="font-semibold text-gray-900 text-sm mb-0.5">اكتب رسالة</div>
+              <div class="text-xs text-gray-500">رسالة شكر لمديري</div>
+            </div>
+          </div>
+          <div onclick="useSuggestion('اشرح لي نظرية النسبية بأسلوب بسيط')" class="suggestion-card">
+            <span class="text-lg">🧠</span>
+            <div>
+              <div class="font-semibold text-gray-900 text-sm mb-0.5">اشرح مفهوماً</div>
+              <div class="text-xs text-gray-500">بأسلوب بسيط</div>
+            </div>
+          </div>
+          <div onclick="useSuggestion('لخص لي هذا النص: ')" class="suggestion-card">
+            <span class="text-lg">📝</span>
+            <div>
+              <div class="font-semibold text-gray-900 text-sm mb-0.5">لخص نصاً</div>
+              <div class="text-xs text-gray-500">طويلاً أو معقداً</div>
+            </div>
+          </div>
+          <div onclick="useSuggestion('اكتب كود Python لحساب الأعداد الأولية')" class="suggestion-card">
+            <span class="text-lg">💻</span>
+            <div>
+              <div class="font-semibold text-gray-900 text-sm mb-0.5">اكتب كوداً</div>
+              <div class="text-xs text-gray-500">Python أو أي لغة</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="py-4">
+      <div class="flex items-end gap-2 bg-white border border-gray-200 rounded-3xl p-2 shadow-sm focus-within:border-gray-400 transition">
+        <textarea 
+          id="user-input" 
+          rows="1"
+          placeholder="اسأل مساعد عربي..." 
+          class="flex-grow bg-transparent text-gray-900 text-[15px] p-2.5 focus:outline-none placeholder-gray-400 min-h-[40px]"
+          onkeydown="handleKeyDown(event)"
+          oninput="autoResize(this)"></textarea>
+        
+        <button 
+          id="send-btn"
+          onclick="sendMessage()" 
+          disabled
+          class="icon-btn primary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <p class="text-[10px] text-gray-400 text-center mt-2">مساعد عربي • ذكاء اصطناعي</p>
+    </div>
+  </div>
+</main>
+
+<script>
+const WORKER_URL = 'https://worker-abc123.mysfhyly.workers.dev';
+const MODEL = 'openai/gpt-oss-120b';
+const STORAGE_KEY = 'arabic_ai_conversation_v4';
+
+let conversationHistory = [];
+
+// ===== Load =====
+function loadConversation() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      conversationHistory = data.history || [];
+      if (conversationHistory.length > 0) {
+        const welcome = document.getElementById('welcome');
+        if (welcome) welcome.remove();
+        conversationHistory.forEach(msg => {
+          if (typeof msg.content === 'string') {
+            addMessageToUI(msg.content, msg.role === 'user', false);
+          }
+        });
+      }
+    } catch (e) { 
+      console.error('Load error:', e);
+      conversationHistory = [];
+    }
+  }
+}
+
+function saveConversation() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      history: conversationHistory,
+      timestamp: Date.now()
+    }));
+  } catch (e) { console.error('Save error:', e); }
+}
+
+// ===== Resize =====
+function autoResize(textarea) {
+  textarea.style.height = 'auto';
+  textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
+  updateSendButton();
+}
+
+function updateSendButton() {
+  const input = document.getElementById('user-input');
+  const btn = document.getElementById('send-btn');
+  btn.disabled = !input.value.trim();
+}
+
+// ===== Keyboard =====
+function handleKeyDown(event) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+}
+
+// ===== Suggestion =====
+function useSuggestion(text) {
+  const input = document.getElementById('user-input');
+  input.value = text;
+  input.focus();
+  autoResize(input);
+}
+
+// ===== Clear =====
+function clearChat() {
+  if (confirm('هل تريد بدء محادثة جديدة؟')) {
+    conversationHistory = [];
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+}
+
+// ===== Time =====
+function getTime() {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+}
+
+// ===== Icons (SVG) =====
+const icons = {
+  copy: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
+  check: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+  thumbUp: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>',
+  thumbDown: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>',
+  refresh: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>'
+};
+
+// ===== Parse Markdown =====
+function renderMarkdown(text) {
+  // First parse with marked
+  let html = marked.parse(text);
+  
+  // Then wrap code blocks with header + copy button
+  // Match <pre><code class="language-xxx">...</code></pre>
+  html = html.replace(/<pre><code class="language-(\w+)">([\s\S]*?)<\/code><\/pre>/g, (match, lang, code) => {
+    const cleanCode = code.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"');
+    const escapedCode = code; // Keep HTML entities for display
+    
+    return `<div class="code-block-wrapper">
+      <div class="code-block-header">
+        <span class="code-block-lang">${lang}</span>
+        <button class="code-copy-btn" onclick="copyCode(this)">
+          ${icons.copy}
+          <span>نسخ</span>
+        </button>
+      </div>
+      <pre><code class="language-${lang}">${code}</code></pre>
+    </div>`;
+  });
+  
+  // Handle code blocks without language
+  html = html.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (match, code) => {
+    return `<div class="code-block-wrapper">
+      <div class="code-block-header">
+        <span class="code-block-lang">code</span>
+        <button class="code-copy-btn" onclick="copyCode(this)">
+          ${icons.copy}
+          <span>نسخ</span>
+        </button>
+      </div>
+      <pre><code>${code}</code></pre>
+    </div>`;
+  });
+  
+  return html;
+}
+
+// ===== Copy Code =====
+function copyCode(btn) {
+  const wrapper = btn.closest('.code-block-wrapper');
+  const code = wrapper.querySelector('pre code').textContent;
+  
+  navigator.clipboard.writeText(code).then(() => {
+    btn.classList.add('copied');
+    btn.innerHTML = `${icons.check}<span>تم النسخ</span>`;
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = `${icons.copy}<span>نسخ</span>`;
+    }, 1500);
+  }).catch(err => {
+    console.error('Copy failed:', err);
+    // Fallback
+    const textarea = document.createElement('textarea');
+    textarea.value = code;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    btn.innerHTML = `${icons.check}<span>تم</span>`;
+    setTimeout(() => { btn.innerHTML = `${icons.copy}<span>نسخ</span>`; }, 1500);
+  });
+}
+
+// ===== Add Message =====
+function addMessageToUI(text, isUser, animate = true) {
+  const container = document.getElementById('chat-container');
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+  
+  const wrapper = document.createElement('div');
+  wrapper.className = `${animate ? 'fade-in' : ''}`;
+  
+  if (isUser) {
+    const bubbleWrapper = document.createElement('div');
+    bubbleWrapper.className = 'flex justify-end';
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble-user max-w-[85%]';
+    bubble.textContent = text;
+    
+    bubbleWrapper.appendChild(bubble);
+    wrapper.appendChild(bubbleWrapper);
+    
+    const timeUser = document.createElement('div');
+    timeUser.className = 'text-[11px] text-gray-400 mt-1 text-left';
+    timeUser.style.paddingRight = '4px';
+    timeUser.textContent = getTime();
+    wrapper.appendChild(timeUser);
+    
+  } else {
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble-ai';
+    bubble.innerHTML = renderMarkdown(text);
+    wrapper.appendChild(bubble);
+    
+    const actionsRow = document.createElement('div');
+    actionsRow.className = 'flex items-center gap-1 mt-2 flex-wrap';
+    
+    // Copy entire response
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'action-btn';
+    copyBtn.innerHTML = `${icons.copy}<span>نسخ الرد</span>`;
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(text);
+      copyBtn.innerHTML = `${icons.check}<span>تم</span>`;
+      copyBtn.classList.add('active');
+      setTimeout(() => {
+        copyBtn.innerHTML = `${icons.copy}<span>نسخ الرد</span>`;
+        copyBtn.classList.remove('active');
+      }, 1500);
+    };
+    actionsRow.appendChild(copyBtn);
+    
+    // Thumbs up
+    const upBtn = document.createElement('button');
+    upBtn.className = 'action-btn';
+    upBtn.innerHTML = icons.thumbUp;
+    upBtn.title = 'إعجاب';
+    let downBtn;
+    upBtn.onclick = () => {
+      upBtn.classList.toggle('active');
+      if (downBtn) downBtn.classList.remove('active');
+    };
+    actionsRow.appendChild(upBtn);
+    
+    // Thumbs down
+    downBtn = document.createElement('button');
+    downBtn.className = 'action-btn';
+    downBtn.innerHTML = icons.thumbDown;
+    downBtn.title = 'عدم إعجاب';
+    downBtn.onclick = () => {
+      downBtn.classList.toggle('active');
+      upBtn.classList.remove('active');
+    };
+    actionsRow.appendChild(downBtn);
+    
+    // Regenerate
+    const regenBtn = document.createElement('button');
+    regenBtn.className = 'action-btn';
+    regenBtn.innerHTML = icons.refresh;
+    regenBtn.title = 'إعادة توليد';
+    regenBtn.onclick = () => regenerateLast();
+    actionsRow.appendChild(regenBtn);
+    
+    wrapper.appendChild(actionsRow);
+  }
+  
+  container.appendChild(wrapper);
+  container.scrollTop = container.scrollHeight;
+}
+
+// ===== Typing =====
+function addTypingIndicator() {
+  const container = document.getElementById('chat-container');
+  const wrapper = document.createElement('div');
+  wrapper.id = 'typing';
+  wrapper.className = 'fade-in';
+  wrapper.innerHTML = `
+    <div class="typing-indicator">
+      <span></span><span></span><span></span>
+    </div>
+  `;
+  container.appendChild(wrapper);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const typing = document.getElementById('typing');
+  if (typing) typing.remove();
+}
+
+// ===== Regenerate =====
+async function regenerateLast() {
+  if (conversationHistory.length >= 1 && conversationHistory[conversationHistory.length - 1].role === 'assistant') {
+    conversationHistory.pop();
+    const container = document.getElementById('chat-container');
+    if (container.lastChild) container.lastChild.remove();
+    saveConversation();
+    await sendToAI();
+  }
+}
+
+// ===== Send =====
+async function sendMessage() {
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  
+  if (!text) return;
+  
+  addMessageToUI(text, true, true);
+  conversationHistory.push({ role: 'user', content: text });
+  saveConversation();
+  
+  input.value = '';
+  input.style.height = 'auto';
+  updateSendButton();
+  
+  await sendToAI();
+}
+
+async function sendToAI() {
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  
+  addTypingIndicator();
+  
+  try {
+    const response = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { 
+            role: 'system', 
+            content: `أنت "مساعد عربي" — مساعد ذكاء اصطناعي عربي احترافي.
+
+قواعد صارمة:
+1. تجيب بالعربية الفصحى المبسطة، بأسلوب واضح ومفيد.
+2. إجاباتك دقيقة ومختصرة عند الحاجة.
+3. إذا سُئلت عن هويتك، من طورك، من صنعك، من أنشأك، من برمجك، أو أي سؤال مشابه، أجب حرفياً: "باسل الفحيلي — مطور ومبتكر عربي. صمم وطوّر «مساعد عربي»، تطبيق ذكاء اصطناعي يخدم المستخدم العربي بلغته الأم."
+4. إذا سُئلت عن "باسل الفحيلي" أو "من هو باسل" أو أي سؤال عنه، أجب بنفس النبذة.
+5. لا تذكر Llama أو GPT أو Qwen أو أي نموذج آخر.
+6. لا تذكر الشركات المطورة.
+7. استخدم تنسيق Markdown عند الحاجة.
+8. عند كتابة كود، استخدم دائماً كتل كود مع اسم اللغة (مثل \`\`\`python أو \`\`\`javascript).` 
+          },
+          ...conversationHistory
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `خطأ: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const aiMessage = data.choices[0].message.content;
+    
+    removeTypingIndicator();
+    addMessageToUI(aiMessage, false);
+    conversationHistory.push({ role: 'assistant', content: aiMessage });
+    saveConversation();
+    
+  } catch (error) {
+    removeTypingIndicator();
+    console.error('Error:', error);
+    addMessageToUI('⚠️ حدث خطأ: ' + error.message, false);
+  } finally {
+    updateSendButton();
+    document.getElementById('user-input').focus();
+  }
+}
+
+// ===== Init =====
+window.addEventListener('load', () => {
+  // امسح الإصدارات القديمة
+  ['arabic_ai_conversation_v1', 'arabic_ai_conversation_v2', 'arabic_ai_conversation_v3'].forEach(key => {
+    if (localStorage.getItem(key)) localStorage.removeItem(key);
+  });
+  loadConversation();
+  document.getElementById('user-input').focus();
+});
+</script>
+</body>
+</html>
